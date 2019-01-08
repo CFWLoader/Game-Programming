@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="zh">
+    <head>
+        <meta charset="utf-8"/>
+        <title>Clear canvas</title>
+    </head>
+    <body onload="mainClear()">
+        <canvas id="webgl" width="600" height="600">
+            This browser might not support "canvas" attribute.
+        </canvas>
+        <script src="../lib/webgl-utils.js"></script>
+        <script src="../lib/webgl-debug.js"></script>
+        <script src="../lib/cuon-utils.js"></script>
+        <script>
+            function mainClear(){
+                var canvas = document.getElementById("webgl");
+                var gl = getWebGLContext(canvas);
+                if(!gl){
+                    console.log("Failed to get the rendering context of WebGL!");
+                    return;
+                }
+                gl.clearColor(1.5, 0.7, 1.0, 1.0); // Value greater than 1.0 will be set to 1.0?
+                // gl.clearColor(0.0, 0.0, 0.0, 1.0);
+                gl.clear(gl.COLOR_BUFFER_BIT);
+            }
+        </script>
+    </body>
+</html>
