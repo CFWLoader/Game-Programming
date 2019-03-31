@@ -12,20 +12,21 @@
         <script src="../lib/webgl-debug.js"></script>
         <script src="../lib/cuon-utils.js"></script>
         <script>
+            // GLSL ES Language.
             // Vertex Shader.
-            var VSHADER_SOURCE = 
+            let VSHADER_SOURCE = 
                 "void main() {\n" +
                 "   gl_Position = vec4(0.0, 0.0, 0.0, 1.0);\n" + // set coodinator
                 "   gl_PointSize = 10.0;\n" + // Set size.
                 "}\n";
             // Fragment Shader.
-            var FSHADER_SOURCE =
+            let FSHADER_SOURCE =
                 "void main() {\n" +
                 "   gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n" +   // Set color.
                 "}\n" 
             function main(){
-                var canvas = document.getElementById("webgl");
-                var gl = getWebGLContext(canvas);
+                let canvas = document.getElementById("webgl");
+                let gl = getWebGLContext(canvas);
                 if(!gl){
                     console.log("Failed to get the rendering context of WebGL!");
                     return;
