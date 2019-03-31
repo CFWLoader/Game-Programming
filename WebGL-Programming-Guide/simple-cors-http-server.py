@@ -1,5 +1,5 @@
-#Ô­±¾µÄHTTPServer²»Ö§³Ö¿çÓò·ÃÎÊ£¬Òò´ËĞèÒª¼ÓÈëCORS²ÎÊı¡£
-#Ê¹ÓÃ¸Ã½Å±¾Æô¶¯»ñÈ¡CORSÖ§³Ö¡£
+#åŸæœ¬çš„HTTPServerä¸æ”¯æŒè·¨åŸŸè®¿é—®ï¼Œå› æ­¤éœ€è¦åŠ å…¥CORSå‚æ•°ã€‚
+#ä½¿ç”¨è¯¥è„šæœ¬å¯åŠ¨è·å–CORSæ”¯æŒã€‚
 #!/usr/bin/env python3
 from http.server import HTTPServer, SimpleHTTPRequestHandler, test
 import sys

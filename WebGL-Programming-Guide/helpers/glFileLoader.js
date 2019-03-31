@@ -1,5 +1,5 @@
 // function onLoadShader(gl, fileString, type) {
-//     if(type == gl.VERTEX_SHADER) {  // 加载顶点着色器
+//     if(type == gl.VERTEX_SHADER) {  // 鍔犺浇椤剁偣鐫�鑹插櫒
 //         VSHADER_SOURCE = fileString;
 //     }
 //     if(type == gl.FRAGMENGT_SHADER){
@@ -26,7 +26,7 @@ function loadShaderSourceCodes(fileName) {
     let okStatus = document.location.protocol === "http:" ? 0 : 200;
     // console.log(okStatus);
     xhr.open('GET', fileName, false);
-    xhr.overrideMimeType("text/plain;charset=utf-8");//默认为utf-8
+    xhr.overrideMimeType("text/plain;charset=utf-8");//榛樿涓簎tf-8
     xhr.send();
     return xhr.status === okStatus ? xhr.responseText : null;
 }
