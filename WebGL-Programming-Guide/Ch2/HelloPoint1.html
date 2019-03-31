@@ -11,19 +11,23 @@
         <script src="../lib/webgl-utils.js"></script>
         <script src="../lib/webgl-debug.js"></script>
         <script src="../lib/cuon-utils.js"></script>
+        <script src="../helpers/constants.js"></script>
+        <script src="../helpers/glFileLoader.js"></script>
         <script>
             // GLSL ES Language.
             // Vertex Shader.
-            let VSHADER_SOURCE = 
-                "void main() {\n" +
-                "   gl_Position = vec4(0.0, 0.0, 0.0, 1.0);\n" + // set coodinator
-                "   gl_PointSize = 10.0;\n" + // Set size.
-                "}\n";
+            // let VSHADER_SOURCE = 
+            //     "void main() {\n" +
+            //     "   gl_Position = vec4(0.0, 0.0, 0.0, 1.0);\n" + // set coodinator
+            //     "   gl_PointSize = 10.0;\n" + // Set size.
+            //     "}\n";
             // Fragment Shader.
-            let FSHADER_SOURCE =
-                "void main() {\n" +
-                "   gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n" +   // Set color.
-                "}\n" 
+            // let FSHADER_SOURCE =
+            //     "void main() {\n" +
+            //     "   gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);\n" +   // Set color.
+            //     "}\n" 
+            let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "HelloPoint1.vert");
+            let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "HelloPoint1.frag");
             function main(){
                 let canvas = document.getElementById("webgl");
                 let gl = getWebGLContext(canvas);
@@ -39,6 +43,7 @@
                 gl.clearColor(0.0, 0.0, 0.0, 1.0);
                 gl.clear(gl.COLOR_BUFFER_BIT);
                 gl.drawArrays(gl.POINTS, 0, 1);
+                // console.log(VSHADER_SOURCE);
             }
         </script>
     </body>
