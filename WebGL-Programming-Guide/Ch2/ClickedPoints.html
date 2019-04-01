@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Clear canvas</title>
+</head>
+
+<body onload="main()">
+    <canvas id="webgl" width="600" height="600">
+        This browser might not support "canvas" attribute.
+    </canvas>
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="../helpers/constants.js"></script>
+    <script src="../helpers/glFileLoader.js"></script>
+    <script>
+        let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "HelloPoint2.vert");
+        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "HelloPoint1.frag");
+        function main() {
+            let canvas = document.getElementById("webgl");
+            let gl = getWebGLContext(canvas);
+            if (!gl) {
+                console.log("Failed to get the rendering context of WebGL!");
+                return;
+            }
+            // Initialize shaders.
+            if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+                console.log("Failed to initilize shaders.");
+                return;
+            }
+            let aPosition = gl.getAttribLocation(gl.program, "a_Position");
+            if (aPosition < 0) {
+                console.log("Failed to get the storage location of a_Position");
+                return;
+            }
+            let aPointSize = gl.getAttribLocation(gl.program, "a_PointSize");
+            if (aPointSize < 0) {
+                console.log("Failed to get the storage location of a_PointSize");
+                return;
+            }
+            // gl.vertexAttrib3f(aPosition, 0.0, 0.0, 0.0);
+            // gl.vertexAttrib3f(aPosition, 0.3, -0.7, 0.0);
+            // gl.vertexAttrib1f(aPointSize, 10.0);
+            gl.vertexAttrib1f(aPointSize, 10.0);
+            canvas.onmousedown = (ev) => click(ev, gl, canvas, aPosition);
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            // gl.drawArrays(gl.POINTS, 0, 1);
+        }
+
+        let gPoints = [];
+        function click(ev, gl, canvas, aPosition) {
+            // alert("Clicked!");
+            // Retrieve location of events in X-Y axis.
+            let x = ev.clientX;
+            let y = ev.clientY;
+            // Get size of canvas for transforming coordinates.
+            let rect = ev.target.getBoundingClientRect();
+            x = ((x - rect.left) - canvas.height / 2) / (canvas.height / 2);
+            y = (canvas.width / 2 - (y - rect.top)) / (canvas.width / 2);
+            // Store points.
+            gPoints.push([x, y]);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            for (point of gPoints) {
+                // Pass value to GLSL.
+                gl.vertexAttrib3f(aPosition, point[0], point[1], 0.0);
+                gl.drawArrays(gl.POINTS, 0, 1);
+            }
+        }
+    </script>
+</body>
+
+</html>
