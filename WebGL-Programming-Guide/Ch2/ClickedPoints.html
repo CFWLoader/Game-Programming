@@ -17,7 +17,7 @@
     <script src="../helpers/glFileLoader.js"></script>
     <script>
         let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "HelloPoint2.vert");
-        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "HelloPoint1.frag");
+        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "ClickedPoints.frag");
         function main() {
             let canvas = document.getElementById("webgl");
             let gl = getWebGLContext(canvas);
@@ -40,32 +40,60 @@
                 console.log("Failed to get the storage location of a_PointSize");
                 return;
             }
+            let uFragColor = gl.getUniformLocation(gl.program, "u_FragColor");
+            if(uFragColor < 0)
+            {
+                console.log("Failed to get the storage location of u_FragColor");
+                return;
+            }
             // gl.vertexAttrib3f(aPosition, 0.0, 0.0, 0.0);
             // gl.vertexAttrib3f(aPosition, 0.3, -0.7, 0.0);
             // gl.vertexAttrib1f(aPointSize, 10.0);
             gl.vertexAttrib1f(aPointSize, 10.0);
-            canvas.onmousedown = (ev) => click(ev, gl, canvas, aPosition);
+            canvas.onmousedown = (ev) => click(ev, gl, canvas, aPosition, uFragColor);
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clear(gl.COLOR_BUFFER_BIT);
             // gl.drawArrays(gl.POINTS, 0, 1);
         }
 
         let gPoints = [];
-        function click(ev, gl, canvas, aPosition) {
+        let gColors = [];
+        function click(ev, gl, canvas, aPosition, uFragColor) {
             // alert("Clicked!");
             // Retrieve location of events in X-Y axis.
             let x = ev.clientX;
             let y = ev.clientY;
             // Get size of canvas for transforming coordinates.
+            // console.log(`COOR(${x}, ${y}).`);
             let rect = ev.target.getBoundingClientRect();
-            x = ((x - rect.left) - canvas.height / 2) / (canvas.height / 2);
-            y = (canvas.width / 2 - (y - rect.top)) / (canvas.width / 2);
+            x = ((x - rect.left) - canvas.width / 2) / (canvas.width / 2);
+            y = (canvas.height / 2 - (y - rect.top)) / (canvas.height / 2);
+            // console.log(`TRANS(${x}, ${y}).`);
             // Store points.
             gPoints.push([x, y]);
+            // Set colors;
+            if(x >= 0.0 && y >= 0.0){
+                // console.log("First ELE -> RED");
+                gColors.push([1.0, 0.0, 0.0, 1.0]);
+            }
+            else if(x < 0.0 && y < 0.0){
+                // console.log("Third ELE -> GREEN");
+                gColors.push([0.0, 1.0, 0.0, 1.0]);
+            }
+            else if(x >= 0.0 && y < 0){
+                // console.log("Forth ELE -> BLUE");
+                gColors.push([0.0, 0.0, 1.0, 1.0]);
+            }
+            else{
+                // console.log("Second ELE -> WHITE");
+                gColors.push([1.0, 1.0, 1.0, 1.0]);
+            }
             gl.clear(gl.COLOR_BUFFER_BIT);
-            for (point of gPoints) {
+            for (idx in gPoints) {
                 // Pass value to GLSL.
-                gl.vertexAttrib3f(aPosition, point[0], point[1], 0.0);
+                gl.vertexAttrib3f(aPosition, gPoints[idx][0], gPoints[idx][1], 0.0);
+                // console.log(gColors[idx]);
+                gl.uniform4f(uFragColor, gColors[idx][0], gColors[idx][1], gColors[idx][2], gColors[idx][3]);
                 gl.drawArrays(gl.POINTS, 0, 1);
             }
         }
