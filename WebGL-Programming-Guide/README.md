@@ -1,5 +1,7 @@
 # WebGL源码使用说明
 
+源码依赖于`WebGL编程指南`中提供的库，自行下载后将`lib`文件夹置于`WebGL-Programming-Guide`目录下。
+
 因为直接在js中嵌入大段的GLSL语言不雅观，因此采取不同源码类型分离的原则，GLSL的代码使用`*.vert`以及`*.frag`文件存储。
 
 因为Chrome不支持XMLHTTPRequest直接使用`file://`协议，因此采用http协议读取GLSL源代码。
