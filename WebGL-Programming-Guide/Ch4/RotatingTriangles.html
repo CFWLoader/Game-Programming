@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Clear canvas</title>
+</head>
+
+<body onload="main()">
+    <canvas id="webgl" width="600" height="600">
+        This browser might not support "canvas" attribute.
+    </canvas>
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="../lib/cuon-matrix.js"></script>
+    <script src="../helpers/constants.js"></script>
+    <script src="../helpers/glFileLoader.js"></script>
+    <script>
+        let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "RotatingTriangles.vert");
+        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "MultiPoint.frag");
+
+        const ANGLE_STEP = 45.0;
+
+        function main() {
+            let canvas = document.getElementById("webgl");
+            let gl = getWebGLContext(canvas);
+            if (!gl) {
+                console.log("Failed to get the rendering context of WebGL!");
+                return;
+            }
+            // Initialize shaders.
+            if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+                console.log("Failed to initilize shaders.");
+                return;
+            }
+            let numVetices = initVertexBuffers(gl);
+            if(numVetices < 0){
+                console.log("Failed to set the positions of the vetices.");
+                return;
+            }
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            let uModelMatrix = gl.getUniformLocation(gl.program, "u_ModelMatrix");
+            if(!uModelMatrix)
+            {
+                console.log("Failed to get the storage location of u_ModelMatrix.");
+                return;
+            }
+            let currentAngle = 0.0;
+            let modelMatrix = new Matrix4();
+            // Drawing triangle.
+            let tick = () => {
+                currentAngle = animate(currentAngle);   // Update angle.
+                draw(gl, numVetices, currentAngle, modelMatrix, uModelMatrix);
+                requestAnimationFrame(tick);
+            };
+            tick();
+        }
+
+        function initVertexBuffers(gl){
+            let vertices = new Float32Array([
+                0.0, 0.3, -0.3, -0.3, 0.3, -0.3
+            ]);
+            let numVetices = vertices.length / 2;
+            // Create buffer object.
+            let vertexBuffer = gl.createBuffer();
+            if(!vertexBuffer){
+                console.log("Failed to create the buffer obejct.");
+                return -1;
+            }
+            // Binding buffer object to target.
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
+            // Write data to buffer object.
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
+            let aPosition = gl.getAttribLocation(gl.program, "a_Position");
+            if (aPosition < 0) {
+                console.log("Failed to get the storage location of a_Position");
+                return;
+            }
+            // Assign buffer object to aPosition variable.
+            gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
+            // Connect variable aPosition to its assigned buffer object.
+            gl.enableVertexAttribArray(aPosition);
+            return numVetices;
+        }
+
+        function draw(gl, numVetices, currentAngle, modelMatrix, uModelMatrix){
+            // Set rotation.
+            modelMatrix.setRotate(currentAngle, 0, 0, 1);
+            // Pass value to vertex shader.
+            gl.uniformMatrix4fv(uModelMatrix, false, modelMatrix.elements);
+            // Clear <canvas>.
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            // Draw triangle.
+            gl.drawArrays(gl.TRIANGLES, 0, numVetices);
+        }
+
+        // Record last time of calling function.
+        let gLast = Date.now();
+        function animate(angle){
+            // Calculate passed time.
+            let nowTime = Date.now();
+            let elapsed = nowTime - gLast;
+            gLast = nowTime;
+            // Update angle by time elapsed.
+            let newAngle = angle + (ANGLE_STEP * elapsed) / 1000.0;
+            return newAngle % 360;
+        }
+    </script>
+</body>
+
+</html>
