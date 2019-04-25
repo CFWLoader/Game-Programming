@@ -16,8 +16,8 @@
     <script src="../helpers/constants.js"></script>
     <script src="../helpers/glFileLoader.js"></script>
     <script>
-        let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "MultiAttributeColor.vert");
-        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "MultiAttributeColor.frag");
+        let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "HelloTriangle_FragCoord.vert");
+        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "HelloTriangle_FragCoord.frag");
         function main() {
             let canvas = document.getElementById("webgl");
             let gl = getWebGLContext(canvas);
@@ -37,54 +37,50 @@
             }
             gl.clearColor(0.0, 0.0, 0.0, 1.0);
             gl.clear(gl.COLOR_BUFFER_BIT);
-            // gl.drawArrays(gl.POINTS, 0, numVetices);
+            // Difference is here.
+            // POINTS, LINES, LINE_STRIP, LINE_LOOP, TRIANGLES, TRIANGLE_STRIP
             gl.drawArrays(gl.TRIANGLES, 0, numVetices);
         }
 
         function initVertexBuffers(gl) {
-            // Mixing coordinates and point size into a data structure.
-            // x, y, r, g, b
-            let verticesColors = new Float32Array([
-                0.0, 0.5, 1.0, 0.0, 0.0,             // Point 1.
-                -0.5, -0.5, 0.0, 1.0, 0.0,           // Point 2.
-                0.5, -0.5, 0.0, 0.0, 1.0             // Point 3.
+            let vertices = new Float32Array([
+                0.0, 0.5, -0.5, -0.5, 0.5, -0.5
             ]);
-            let numVetices = 3;
+            let numVetices = vertices.length / 2;
             // Create buffer object.
-            let vertexColorBuffer = gl.createBuffer();
-            if (!vertexColorBuffer) {
+            let vertexBuffer = gl.createBuffer();
+            if (!vertexBuffer) {
                 console.log("Failed to create the buffer obejct.");
                 return -1;
             }
             // Binding buffer object to target.
-            gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexBuffer);
             // Write data to buffer object.
-            gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
-            const FSIZE = verticesColors.BYTES_PER_ELEMENT;
+            gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
             let aPosition = gl.getAttribLocation(gl.program, "a_Position");
             if (aPosition < 0) {
                 console.log("Failed to get the storage location of a_Position");
-                return -1;
+                return;
             }
+            let u_Width = gl.getUniformLocation(gl.program, 'u_Width');
+            if (!u_Width) {
+                console.log('Failed to get the storage location of u_Width');
+                return;
+            }
+
+            let u_Height = gl.getUniformLocation(gl.program, 'u_Height');
+            if (!u_Height) {
+                console.log('Failed to get the storage location of u_Height');
+                return;
+            }
+            // Pass the width and hight of the <canvas>
+            gl.uniform1f(u_Width, gl.drawingBufferWidth);
+            gl.uniform1f(u_Height, gl.drawingBufferHeight);
+
             // Assign buffer object to aPosition variable.
-            // gl.vertexAttribPointer(location, size, type, normalized, stride, offset)
-            // Notice that last 2 parameter is stride and offset.
-            // For example, in this case, FSIZE * 5 means a data structure saving a point is FSIZE * 5 bytes.
-            // Then Point 1 read as FSIZE * 3 * 0 = 0, reading ${size}(2 in this case) variable(s), and it starts at
-            // FSIZE * 5 * 0 + ${offset} * 1 = 0.
-            // (Seeing line at assigning aPointSize)Note that point 1's size located at FSIZE * 5 * 0 + ${offset} * 1 = 
-            // FSIZE * 5 * 0 + FSIZE * 2 * 1 = FSIZE * 2. It means starting at slot 3.
-            gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, FSIZE * 5, 0);
+            gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, 0, 0);
             // Connect variable aPosition to its assigned buffer object.
             gl.enableVertexAttribArray(aPosition);
-            let aColor = gl.getAttribLocation(gl.program, "a_Color");
-            // let aPointSize = gl.getUniformLocation(gl.program, "a_PointSize");
-            if (aColor < 0) {
-                console.log("Failed to get the storage location of a_Color.");
-                return -1;
-            }
-            gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, FSIZE * 5, FSIZE * 2);
-            gl.enableVertexAttribArray(aColor);
             return numVetices;
         }
     </script>
