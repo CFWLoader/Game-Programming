@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Texture1</title>
+</head>
+
+<body onload="main()">
+    <canvas id="webgl" width="600" height="600">
+        This browser might not support "canvas" attribute.
+    </canvas>
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="../helpers/constants.js"></script>
+    <script src="../helpers/glFileLoader.js"></script>
+    <script>
+        let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "TexturedQuad.vert");
+        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "MultiTexture.frag");
+        function main() {
+            let canvas = document.getElementById("webgl");
+            let gl = getWebGLContext(canvas);
+            if (!gl) {
+                console.log("Failed to get the rendering context of WebGL!");
+                return;
+            }
+            // Initialize shaders.
+            if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+                console.log("Failed to initilize shaders.");
+                return;
+            }
+            let numVetices = initVertexBuffers(gl);
+            if (numVetices < 0) {
+                console.log("Failed to set the positions of the vetices.");
+                return;
+            }
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            if (!initTextures(gl, numVetices)) {
+                console.log("Failed to initilize textures.");
+                return;
+            }
+        }
+
+        function initVertexBuffers(gl) {
+            // Mapping webgl coordinates(-0.5, -0.5 -> 0.5, 0.5) to normal coordinates(0.0, 0.0 -> 1.0, 1.0).
+            // x, y, texcoord1, texcoord2
+            let verticesTexCoords = new Float32Array([
+                -0.5, 0.5, 0.0, 1.0,
+                -0.5, -0.5, 0.0, 0.0,
+                0.5, 0.5, 1.0, 1.0,           // Point 2.
+                0.5, -0.5, 1.0, 0.0             // Point 3.
+            ]);
+            let numVetices = 4;
+            // Create buffer object.
+            let vertexTexCoordBuffer = gl.createBuffer();
+            if (!vertexTexCoordBuffer) {
+                console.log("Failed to create the buffer obejct.");
+                return -1;
+            }
+            // Binding buffer object to target.
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexTexCoordBuffer);
+            // Write data to buffer object.
+            gl.bufferData(gl.ARRAY_BUFFER, verticesTexCoords, gl.STATIC_DRAW);
+            const FSIZE = verticesTexCoords.BYTES_PER_ELEMENT;
+            let aPosition = gl.getAttribLocation(gl.program, "a_Position");
+            if (aPosition < 0) {
+                console.log("Failed to get the storage location of a_Position");
+                return -1;
+            }
+            gl.vertexAttribPointer(aPosition, 2, gl.FLOAT, false, FSIZE * 4, 0);
+            // Connect variable aPosition to its assigned buffer object.
+            gl.enableVertexAttribArray(aPosition);
+            let aTexCoord = gl.getAttribLocation(gl.program, "a_TexCoord");
+            if (aTexCoord < 0) {
+                console.log("Failed to get the storage location of a_TexCoord.");
+                return -1;
+            }
+            gl.vertexAttribPointer(aTexCoord, 2, gl.FLOAT, false, FSIZE * 4, FSIZE * 2);
+            gl.enableVertexAttribArray(aTexCoord);
+            return numVetices;
+        }
+
+        function initTextures(gl, numVetices) {
+            let texture0 = gl.createTexture();       // Create texture object.
+            let texture1 = gl.createTexture();
+            if (!texture0) {
+                console.log("Failed to create the texture0 obejct.");
+                return false;
+            }
+            if (!texture1) {
+                console.log("Failed to create the texture1 obejct.");
+                return false;
+            }
+            let uSampler0 = gl.getUniformLocation(gl.program, "u_Sampler0");
+            let uSampler1 = gl.getUniformLocation(gl.program, "u_Sampler1");
+            if (!uSampler0) {
+                console.log("Failed to get the storage location of u_Sampler0.");
+                return false;
+            }
+            if (!uSampler1) {
+                console.log("Failed to get the storage location of u_Sampler1.");
+                return false;
+            }
+            let imgObj0 = new Image();       // Create image object.
+            let imgObj1 = new Image();
+            if (!imgObj0) {
+                console.log("Failed to create the image0 obejct.");
+                return false;
+            }
+            if (!imgObj1) {
+                console.log("Failed to create the image1 obejct.");
+                return false;
+            }
+            // Register response function on loading event.
+            imgObj0.onload = () => {
+                loadTexture(gl, numVetices, texture0, uSampler0, imgObj0, 0);
+            }
+            imgObj1.onload = () => {
+                loadTexture(gl, numVetices, texture1, uSampler1, imgObj1, 1);
+            }
+            // Add this line to allow access of cross-origin.
+            imgObj0.crossOrigin = "anonymous";
+            imgObj0.src = ServerRoot + "redflower.jpg";
+            imgObj1.crossOrigin = "anonymous";
+            imgObj1.src = ServerRoot + "circle.gif";
+            return true;
+        }
+
+        let gTexUnit0 = false, gTexUnit1 = false;
+        function loadTexture(gl, numVetices, texture, uSampler, imgObj, texUnitNum) {
+            gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, 1);          // Invert y axis for texture image.
+            // Enable number texture units.
+            if (texUnitNum === 0) {
+                gl.activeTexture(gl.TEXTURE0);
+                gTexUnit0 = true;
+            }
+            else if (texUnitNum === 1) {
+                gl.activeTexture(gl.TEXTURE1);
+                gTexUnit1 = true;
+            }
+            else {
+                throw Error("Undefined texture unit!");
+            }
+            // Binding texture object to target.
+            gl.bindTexture(gl.TEXTURE_2D, texture);
+            // Configure texture parameters.
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            // Configure texture image.
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, imgObj);
+            // Pass number 0 texture to shader.
+            gl.uniform1i(uSampler, texUnitNum);
+            gl.clear(gl.COLOR_BUFFER_BIT);   // Clear <canvas>
+            if (gTexUnit0 && gTexUnit1) {
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, numVetices);
+            }
+        }
+    </script>
+</body>
+
+</html>
