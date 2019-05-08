@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8" />
+    <title>正射投影演示</title>
+</head>
+
+<body onload="main()">
+    <canvas id="webgl" width="600" height="600">
+        This browser might not support "canvas" attribute.
+    </canvas>
+    <p id="nearFar">正射投影的远近值在此显示</p>
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="../lib//cuon-matrix.js"></script>
+    <script src="../helpers/constants.js"></script>
+    <script src="../helpers/glFileLoader.js"></script>
+    <script>
+        let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch7/OrthoView.vert");
+        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch7/LookAtTriangles.frag");
+        function main() {
+            let canvas = document.getElementById("webgl");
+            let gl = getWebGLContext(canvas);
+            if (!gl) {
+                console.log("Failed to get the rendering context of WebGL!");
+                return;
+            }
+            let nf = document.getElementById("nearFar");
+            if(nf === null){
+                console.log("Fail to get the text element.");
+                return;
+            }
+            // Initialize shaders.
+            if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+                console.log("Failed to initilize shaders.");
+                return;
+            }
+            let numVetices = initVertexBuffers(gl);
+            if (numVetices < 0) {
+                console.log("Failed to set the positions of the vetices.");
+                return;
+            }
+            let uProjMatrix = gl.getUniformLocation(gl.program, "u_ProjMatrix");
+            if(!uProjMatrix){
+                console.log("Failed to get the storage location of u_ProjMatrix");
+                return;
+            }
+            let projMatrix = new Matrix4();
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            document.onkeydown = (ev) => {
+                keyDown(ev, gl, numVetices, uProjMatrix, projMatrix, nf);
+            };
+            draw(gl, numVetices, uProjMatrix, projMatrix, nf);
+        }
+
+        function initVertexBuffers(gl) {
+            let verticesColors = new Float32Array([
+                // x, y, z, r, g, b
+                // Green triangle on the rear.
+                0.0, 0.5, -0.4, 0.4, 1.0, 0.4,
+                -0.5, -0.5, -0.4, 0.4, 1.0, 0.4,
+                0.5, -0.5, -0.4, 1.0, 0.4, 0.4,
+                // Yellow triangle on the middle.
+                0.5, 0.4, -0.2, 1.0, 0.4, 0.4,
+                -0.5, 0.4, -0.2, 1.0, 1.0, 0.4,
+                0.0, -0.6, -0.2, 1.0, 1.0, 0.4,
+                // Blue triangle on the front.
+                0.0, 0.5, 0.0, 0.4, 0.4, 1.0,
+                -0.5, -0.5, 0.0, 0.4, 0.4, 1.0,
+                0.5, -0.5, 0.0, 1.0, 0.4, 0.4
+            ]);
+            const numVetices = 9;
+            // Create buffer object.
+            let vertexColorBuffer = gl.createBuffer();
+            if (!vertexColorBuffer) {
+                console.log("Failed to create the buffer obejct.");
+                return -1;
+            }
+            // Binding buffer object to target.
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
+            // Write data to buffer object.
+            gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
+            const FSIZE = verticesColors.BYTES_PER_ELEMENT;
+            let aPosition = gl.getAttribLocation(gl.program, "a_Position");
+            if (aPosition < 0) {
+                console.log("Failed to get the storage location of a_Position");
+                return;
+            }
+            gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, FSIZE * 6, 0);
+            gl.enableVertexAttribArray(aPosition);
+            let aColor = gl.getAttribLocation(gl.program, "a_Color");
+            if(aColor < 0){
+                console.log("Failed to get the storage location of a_Color");
+                return;
+            }
+            gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, FSIZE * 6, FSIZE * 3);
+            gl.enableVertexAttribArray(aColor);
+            // Unbind the buffer object.
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            return numVetices;
+        }
+
+        let gNear = 0.0, gFar = 0.5;
+        function keyDown(ev, gl, numVetices, uProjMatrix, projMatrix, nf){
+            switch(ev.keyCode){
+                case 39: gNear += 0.01; break;      // Right
+                case 37: gNear -= 0.01; break;      // Left
+                case 38: gFar += .01; break;        // Up
+                case 40: gFar -= .01; break;        // Down
+                default: return;
+            }
+            draw(gl, numVetices, uProjMatrix, projMatrix, nf);
+        }
+
+        function draw(gl, numVetices, uProjMatrix, projMatrix, nf){
+            // Set the visible space.
+            projMatrix.setOrtho(-1, 1, -1, 1, gNear, gFar);
+            gl.uniformMatrix4fv(uProjMatrix, false, projMatrix.elements);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            nf.innerHTML = `near: ${Math.round(gNear * 100) / 100}, far: ${Math.round(gFar * 100) / 100}`;
+            gl.drawArrays(gl.TRIANGLES, 0, numVetices);
+        }
+    </script>
+</body>
+
+</html>
