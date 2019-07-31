@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8" />
+    <title>Look At Triangles</title>
+</head>
+
+<body onload="main()">
+    <canvas id="webgl" width="600" height="600">
+        This browser might not support "canvas" attribute.
+    </canvas>
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="../lib//cuon-matrix.js"></script>
+    <script src="../helpers/constants.js"></script>
+    <script src="../helpers/glFileLoader.js"></script>
+    <script>
+        let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch7/PerspectiveView_mvp.vert");
+        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch7/LookAtTriangles.frag");
+        function main() {
+            let canvas = document.getElementById("webgl");
+            let gl = getWebGLContext(canvas);
+            if (!gl) {
+                console.log("Failed to get the rendering context of WebGL!");
+                return;
+            }
+            // Initialize shaders.
+            if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+                console.log("Failed to initilize shaders.");
+                return;
+            }
+            let numVetices = initVertexBuffers(gl);
+            if (numVetices < 0) {
+                console.log("Failed to set the positions of the vetices.");
+                return;
+            }
+            let uViewMatrix = gl.getUniformLocation(gl.program, "u_ViewMatrix");
+            if (!uViewMatrix) {
+                console.log("Failed to get the storage location of u_ViewMatrix");
+                return;
+            }
+            let viewMatrix = new Matrix4();
+            let uProjMatrix = gl.getUniformLocation(gl.program, "u_ProjMatrix");
+            if (uProjMatrix === null) {
+                console.log("Failed to get the storage location of u_ProjMatrix");
+                return;
+            }
+            let projMatrix = new Matrix4();
+            let uModelMatrix = gl.getUniformLocation(gl.program, "u_ModelMatrix");
+            if (uProjMatrix === null) {
+                console.log("Failed to get the storage location of u_ModelMatrix");
+                return;
+            }
+            let modelMatrix = new Matrix4();                        // Set right side triangles' coordinates.
+            viewMatrix.setLookAt(0, 0, 5, 0, 0, -100, 0, 1, 0);
+            projMatrix.setPerspective(30, canvas.width / canvas.height, 1, 100);
+            modelMatrix.setTranslate(0.75, 0, 0);
+            gl.uniformMatrix4fv(uModelMatrix, false, modelMatrix.elements);
+            gl.uniformMatrix4fv(uProjMatrix, false, projMatrix.elements);
+            gl.uniformMatrix4fv(uViewMatrix, false, viewMatrix.elements);
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            // 开启深度测试，消除隐藏面，解决*1问题。
+            gl.enable(gl.DEPTH_TEST);
+            // 清空颜色和深度缓冲区
+            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            gl.drawArrays(gl.TRIANGLES, 0, numVetices);             // Draw right side triangles.
+            modelMatrix.setTranslate(-0.75, 0, 0);                  // Do same to left side.
+            gl.uniformMatrix4fv(uModelMatrix, false, modelMatrix.elements);
+            gl.drawArrays(gl.TRIANGLES, 0, numVetices);
+        }
+
+        function initVertexBuffers(gl) {
+            /**
+            *1.GLSL ES是按照顶点输入到缓冲区的顺序进行渲染，因此虽然蓝黄绿三个三角形虽然是由远到近输入，逻辑上
+            应该绿色盖住黄蓝，但是因为上述特性会出现违背直觉的现象。
+            */
+            let verticesColors = new Float32Array([
+                0.0, 1.0, 0.0, 0.4, 0.4, 1.0,  // The front blue one 
+                -0.5, -1.0, 0.0, 0.4, 0.4, 1.0,
+                0.5, -1.0, 0.0, 1.0, 0.4, 0.4,
+
+                0.0, 1.0, -2.0, 1.0, 1.0, 0.4, // The middle yellow one
+                -0.5, -1.0, -2.0, 1.0, 1.0, 0.4,
+                0.5, -1.0, -2.0, 1.0, 0.4, 0.4,
+
+                0.0, 1.0, -4.0, 0.4, 1.0, 0.4, // The back green one
+                -0.5, -1.0, -4.0, 0.4, 1.0, 0.4,
+                0.5, -1.0, -4.0, 1.0, 0.4, 0.4
+            ])
+            const numVetices = 9;
+            // Create buffer object.
+            let vertexColorBuffer = gl.createBuffer();
+            if (!vertexColorBuffer) {
+                console.log("Failed to create the buffer obejct.");
+                return -1;
+            }
+            // Binding buffer object to target.
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
+            // Write data to buffer object.
+            gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
+            const FSIZE = verticesColors.BYTES_PER_ELEMENT;
+            let aPosition = gl.getAttribLocation(gl.program, "a_Position");
+            if (aPosition < 0) {
+                console.log("Failed to get the storage location of a_Position");
+                return;
+            }
+            gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, FSIZE * 6, 0);
+            gl.enableVertexAttribArray(aPosition);
+            let aColor = gl.getAttribLocation(gl.program, "a_Color");
+            if (aColor < 0) {
+                console.log("Failed to get the storage location of a_Color");
+                return;
+            }
+            gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, FSIZE * 6, FSIZE * 3);
+            gl.enableVertexAttribArray(aColor);
+            // Unbind the buffer object.
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            return numVetices;
+        }
+    </script>
+</body>
+
+</html>

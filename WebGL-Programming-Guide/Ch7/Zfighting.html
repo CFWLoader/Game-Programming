@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="zh">
+
+<head>
+    <meta charset="utf-8" />
+    <title>深度冲突</title>
+</head>
+
+<body onload="main()">
+    <canvas id="webgl" width="600" height="600">
+        This browser might not support "canvas" attribute.
+    </canvas>
+    <script src="../lib/webgl-utils.js"></script>
+    <script src="../lib/webgl-debug.js"></script>
+    <script src="../lib/cuon-utils.js"></script>
+    <script src="../lib//cuon-matrix.js"></script>
+    <script src="../helpers/constants.js"></script>
+    <script src="../helpers/glFileLoader.js"></script>
+    <script>
+        let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch7/Zfighting.vert");
+        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch7/LookAtTriangles.frag");
+        function main() {
+            let canvas = document.getElementById("webgl");
+            let gl = getWebGLContext(canvas);
+            if (!gl) {
+                console.log("Failed to get the rendering context of WebGL!");
+                return;
+            }
+            // Initialize shaders.
+            if (!initShaders(gl, VSHADER_SOURCE, FSHADER_SOURCE)) {
+                console.log("Failed to initilize shaders.");
+                return;
+            }
+            let numVetices = initVertexBuffers(gl);
+            if (numVetices < 0) {
+                console.log("Failed to set the positions of the vetices.");
+                return;
+            }
+            let uViewProjMatrix = gl.getUniformLocation(gl.program, 'u_ViewProjMatrix');
+            if (!uViewProjMatrix) {
+                console.log('Failed to get the storage locations of u_ViewProjMatrix');
+                return;
+            }
+            var viewProjMatrix = new Matrix4();
+            // Set the eye point, look-at point, and up vector.
+            viewProjMatrix.setPerspective(30, canvas.width / canvas.height, 1, 100);
+            viewProjMatrix.lookAt(3.06, 2.5, 10.0, 0, 0, -2, 0, 1, 0);
+            gl.uniformMatrix4fv(uViewProjMatrix, false, viewProjMatrix.elements);
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.enable(gl.DEPTH_TEST);
+            gl.clear(gl.COLOR_BUFFER_BIT);
+            // 开启多边形偏移，解决Z轴相近物体渲染重合问题
+            gl.enable(gl.POLYGON_OFFSET_FILL);
+            gl.drawArrays(gl.TRIANGLES, 0, numVetices / 2);             // Draw right side triangles.
+            gl.polygonOffset(1.0, 1.0);
+            gl.drawArrays(gl.TRIANGLES, numVetices / 2, numVetices / 2);
+        }
+
+        function initVertexBuffers(gl) {
+            /* 两个三角形z轴距离相近 */
+            let verticesColors = new Float32Array([
+                // Vertex coordinates and color
+                0.0, 2.5, -5.0, 0.4, 1.0, 0.4, // The green triangle
+                -2.5, -2.5, -5.0, 0.4, 1.0, 0.4,
+                2.5, -2.5, -5.0, 1.0, 0.4, 0.4,
+
+                0.0, 3.0, -5.0, 1.0, 0.4, 0.4, // The yellow triagle
+                -3.0, -3.0, -5.0, 1.0, 1.0, 0.4,
+                3.0, -3.0, -5.0, 1.0, 1.0, 0.4,
+            ]);
+            const numVetices = 6;
+            // Create buffer object.
+            let vertexColorBuffer = gl.createBuffer();
+            if (!vertexColorBuffer) {
+                console.log("Failed to create the buffer obejct.");
+                return -1;
+            }
+            // Binding buffer object to target.
+            gl.bindBuffer(gl.ARRAY_BUFFER, vertexColorBuffer);
+            // Write data to buffer object.
+            gl.bufferData(gl.ARRAY_BUFFER, verticesColors, gl.STATIC_DRAW);
+            const FSIZE = verticesColors.BYTES_PER_ELEMENT;
+            let aPosition = gl.getAttribLocation(gl.program, "a_Position");
+            if (aPosition < 0) {
+                console.log("Failed to get the storage location of a_Position");
+                return;
+            }
+            gl.vertexAttribPointer(aPosition, 3, gl.FLOAT, false, FSIZE * 6, 0);
+            gl.enableVertexAttribArray(aPosition);
+            let aColor = gl.getAttribLocation(gl.program, "a_Color");
+            if (aColor < 0) {
+                console.log("Failed to get the storage location of a_Color");
+                return;
+            }
+            gl.vertexAttribPointer(aColor, 3, gl.FLOAT, false, FSIZE * 6, FSIZE * 3);
+            gl.enableVertexAttribArray(aColor);
+            // Unbind the buffer object.
+            gl.bindBuffer(gl.ARRAY_BUFFER, null);
+            return numVetices;
+        }
+    </script>
+</body>
+
+</html>
