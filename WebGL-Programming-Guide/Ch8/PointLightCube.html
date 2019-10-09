@@ -23,6 +23,7 @@
          */
         let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch8/PointLightCube.vert");
         let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch8/LightCube.frag");
+
         function main() {
             let canvas = document.getElementById("webgl");
             let gl = getWebGLContext(canvas);
@@ -46,12 +47,12 @@
                 return;
             }
             let uModelMatrix = gl.getUniformLocation(gl.program, "u_ModelMatrix");
-            if (uModelMatrix = null) {
+            if (uModelMatrix === null) {
                 console.log("Failed to get the storage location of u_ModelMatrix");
                 return;
             }
             let uNormalMatrix = gl.getUniformLocation(gl.program, "u_NormalMatrix");
-            if (uNormalMatrix = null) {
+            if (uNormalMatrix === null) {
                 console.log("Failed to get the storage location of u_NormalMatrix");
                 return;
             }
@@ -70,10 +71,12 @@
                 console.log("Failed to get the storage location of u_AmbientLight");
                 return;
             }
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.enable(gl.DEPTH_TEST);
             // 设置白光源
             gl.uniform3f(uLightColor, 1.0, 1.0, 1.0);
             gl.uniform3f(uAmbientLight, 0.2, 0.2, 0.2);
-            gl.uniform3f(uLightPosition, 0.0, 3.0, 4.0);
+            gl.uniform3f(uLightPosition, 2.3, 4.0, 3.5);
             let viewMatrix = new Matrix4();
             let projMatrix = new Matrix4();
             let modelMatrix = new Matrix4();
@@ -89,8 +92,6 @@
             normalMatrix.setInverseOf(modelMatrix);
             normalMatrix.transpose();
             gl.uniformMatrix4fv(uNormalMatrix, false, normalMatrix.elements);
-            gl.clearColor(0.0, 0.0, 0.0, 1.0);
-            gl.enable(gl.DEPTH_TEST);
             gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
             gl.drawElements(gl.TRIANGLES, numVetices, gl.UNSIGNED_BYTE, 0);
         }
