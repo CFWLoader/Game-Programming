@@ -3,8 +3,7 @@
 
 <head>
     <meta charset="utf-8" />
-    <title>Lighted Cube Ambient Per Fragment
-    </title>
+    <title>Joint Model</title>
 </head>
 
 <body onload="main()">
@@ -22,8 +21,8 @@
          * 玄学又来，LightCube.vert和LightCube2.vert中声明u_LightColor的方式都一样，但是第一个文件读入后初始化gl程序
          * 就没有该变量，这是为何？
          */
-        let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch9/JointMode.vert");
-        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch9/JointMode.frag");
+        let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch9/JointModel.vert");
+        let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch9/JointModel.frag");
 
         function main() {
             let canvas = document.getElementById("webgl");
