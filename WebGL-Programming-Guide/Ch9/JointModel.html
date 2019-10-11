@@ -17,10 +17,6 @@
     <script src="../helpers/constants.js"></script>
     <script src="../helpers/glFileLoader.js"></script>
     <script>
-        /**
-         * 玄学又来，LightCube.vert和LightCube2.vert中声明u_LightColor的方式都一样，但是第一个文件读入后初始化gl程序
-         * 就没有该变量，这是为何？
-         */
         let VSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch9/JointModel.vert");
         let FSHADER_SOURCE = loadShaderSourceCodes(ServerRoot + "Ch9/JointModel.frag");
 
@@ -41,14 +37,11 @@
                 console.log("Failed to set the positions of the vetices.");
                 return;
             }
+            gl.clearColor(0.0, 0.0, 0.0, 1.0);
+            gl.enable(gl.DEPTH_TEST);
             let uMvpMatrix = gl.getUniformLocation(gl.program, "u_MvpMatrix");
             if (uMvpMatrix === null) {
                 console.log("Failed to get the storage location of u_MvpMatrix");
-                return;
-            }
-            let uModelMatrix = gl.getUniformLocation(gl.program, "u_ModelMatrix");
-            if (uModelMatrix === null) {
-                console.log("Failed to get the storage location of u_ModelMatrix");
                 return;
             }
             let uNormalMatrix = gl.getUniformLocation(gl.program, "u_NormalMatrix");
@@ -56,81 +49,51 @@
                 console.log("Failed to get the storage location of u_NormalMatrix");
                 return;
             }
-            let uLightColor = gl.getUniformLocation(gl.program, "u_LightColor");
-            if (uLightColor === null) {
-                console.log("Failed to get the storage location of u_LightColor");
-                return;
+            let viewProjMatrix = new Matrix4();
+            viewProjMatrix.setPerspective(50.0, 1.0, 1.0, 100.0);
+            viewProjMatrix.lootAt(20.0, 10.0, 30.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0);
+            document.onkeydown = (ev) => keydown(ev, gl, numVetices, viewProjMatrix, uMvpMatrix, uNormalMatrix);
+            draw(gl, numVetices, viewProjMatrix, uMvpMatrix, uNormalMatrix);
+        }
+
+        let ANGLE_STEP = 3.0;
+        let gArm1Angle = -90.0;
+        let gJoint1Angle = 0.0;
+
+        function keydown(ev, gl, numVetices, viewProjMatrix, uMvpMatrix, uNormalMatrix){
+            switch(ev.keyCode){
+                case 38: gJoint1Angle = gJoint1Angle + gJoint1Angle < 135.0 ? ANGLE_STEP : 0; break;
+                case 40: gJoint1Angle = gJoint1Angle - gJoint1Angle > -135.0 ? ANGLE_STEP : 0; break;
+                case 39: gArm1Angle = (gArm1Angle + ANGLE_STEP) % 360; break;
+                case 37: gArm1Angle = (gArm1Angle - ANGLE_STEP) % 360; break;
+                default: return;
             }
-            let uLightPosition = gl.getUniformLocation(gl.program, "u_LightPosition");
-            if (uLightPosition === null) {
-                console.log("Failed to get the storage location of u_LightPosition");
-                return;
-            }
-            let uAmbientLight = gl.getUniformLocation(gl.program, "u_AmbientLight");
-            if (uAmbientLight === null) {
-                console.log("Failed to get the storage location of u_AmbientLight");
-                return;
-            }
-            gl.clearColor(0.0, 0.0, 0.0, 1.0);
-            gl.enable(gl.DEPTH_TEST);
-            // 设置白光源
-            gl.uniform3f(uLightColor, 1.0, 1.0, 1.0);
-            gl.uniform3f(uAmbientLight, 0.2, 0.2, 0.2);
-            gl.uniform3f(uLightPosition, 2.3, 4.0, 3.5);
-            let viewMatrix = new Matrix4();
-            let projMatrix = new Matrix4();
-            let modelMatrix = new Matrix4();
-            let mvpMatrix = new Matrix4();
-            let normalMatrix = new Matrix4();
-            modelMatrix.setRotate(90, 0, 1, 0);
-            gl.uniformMatrix4fv(uModelMatrix, false, modelMatrix.elements);
-            viewMatrix.setLookAt(6, 6, 14, 0, 0, 0, 0, 1, 0);
-            projMatrix.setPerspective(30, 1, 1, 100);
-            mvpMatrix.set(projMatrix).multiply(viewMatrix).multiply(modelMatrix);
-            gl.uniformMatrix4fv(uMvpMatrix, false, mvpMatrix.elements);
-            // Pass the matrix to transform the normal based on the model matrix to u_NormalMatrix
-            normalMatrix.setInverseOf(modelMatrix);
-            normalMatrix.transpose();
-            gl.uniformMatrix4fv(uNormalMatrix, false, normalMatrix.elements);
-            gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-            gl.drawElements(gl.TRIANGLES, numVetices, gl.UNSIGNED_BYTE, 0);
+            draw(gl, numVetices, viewProjMatrix, uMvpMatrix, uNormalMatrix);
         }
 
         function initVertexBuffers(gl) {
-            // Create a cube
-            //    v6----- v5
-            //   /|      /|
-            //  v1------v0|
-            //  | |     | |
-            //  | |v7---|-|v4
-            //  |/      |/
-            //  v2------v3
-            let vertices = new Float32Array([   // Coordinates
-                1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, 1.0, // v0-v1-v2-v3 front
-                1.0, 1.0, 1.0, 1.0, -1.0, 1.0, 1.0, -1.0, -1.0, 1.0, 1.0, -1.0, // v0-v3-v4-v5 right
-                1.0, 1.0, 1.0, 1.0, 1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, 1.0, // v0-v5-v6-v1 up
-                -1.0, 1.0, 1.0, -1.0, 1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, // v1-v6-v7-v2 left
-                -1.0, -1.0, -1.0, 1.0, -1.0, -1.0, 1.0, -1.0, 1.0, -1.0, -1.0, 1.0, // v7-v4-v3-v2 down
-                1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, 1.0, -1.0, 1.0, 1.0, -1.0  // v4-v7-v6-v5 back
+            // Vertex coordinates（a cuboid 3.0 in width, 10.0 in height, and 3.0 in length with its origin at the center of its bottom)
+            var vertices = new Float32Array([
+                1.5, 10.0, 1.5, -1.5, 10.0, 1.5, -1.5, 0.0, 1.5, 1.5, 0.0, 1.5, // v0-v1-v2-v3 front
+                1.5, 10.0, 1.5, 1.5, 0.0, 1.5, 1.5, 0.0, -1.5, 1.5, 10.0, -1.5, // v0-v3-v4-v5 right
+                1.5, 10.0, 1.5, 1.5, 10.0, -1.5, -1.5, 10.0, -1.5, -1.5, 10.0, 1.5, // v0-v5-v6-v1 up
+                -1.5, 10.0, 1.5, -1.5, 10.0, -1.5, -1.5, 0.0, -1.5, -1.5, 0.0, 1.5, // v1-v6-v7-v2 left
+                -1.5, 0.0, -1.5, 1.5, 0.0, -1.5, 1.5, 0.0, 1.5, -1.5, 0.0, 1.5, // v7-v4-v3-v2 down
+                1.5, 0.0, -1.5, -1.5, 0.0, -1.5, -1.5, 10.0, -1.5, 1.5, 10.0, -1.5  // v4-v7-v6-v5 back
             ]);
-            let colors = new Float32Array([    // Colors
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,     // v0-v1-v2-v3 front
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,     // v0-v3-v4-v5 right
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,     // v0-v5-v6-v1 up
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,     // v1-v6-v7-v2 left
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0,     // v7-v4-v3-v2 down
-                1, 0, 0, 1, 0, 0, 1, 0, 0, 1, 0, 0　    // v4-v7-v6-v5 back
+
+            // Normal
+            var normals = new Float32Array([
+                0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, // v0-v1-v2-v3 front
+                1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, // v0-v3-v4-v5 right
+                0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, // v0-v5-v6-v1 up
+                -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, // v1-v6-v7-v2 left
+                0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, // v7-v4-v3-v2 down
+                0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0  // v4-v7-v6-v5 back
             ]);
-            let normals = new Float32Array([    // 法向量（normal）
-                0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,  // v0-v1-v2-v3 front
-                1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0,  // v0-v3-v4-v5 right
-                0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0,  // v0-v5-v6-v1 up
-                -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0,  // v1-v6-v7-v2 left
-                0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0,  // v7-v4-v3-v2 down
-                0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0, 0.0, 0.0, -1.0   // v4-v7-v6-v5 back
-            ]);
+
             // Indices of the vertices
-            let indices = new Uint8Array([
+            var indices = new Uint8Array([
                 0, 1, 2, 0, 2, 3,    // front
                 4, 5, 6, 4, 6, 7,    // right
                 8, 9, 10, 8, 10, 11,    // up
